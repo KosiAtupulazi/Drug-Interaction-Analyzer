@@ -1,1 +1,1 @@
-# -Drug-Interaction-Analyzer
+# Drug-Interaction-Analyzer
