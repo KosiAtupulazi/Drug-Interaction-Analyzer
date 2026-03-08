@@ -41,10 +41,15 @@ function CitationCard({ citation }) {
   )
 }
 
-function InteractionCard({ interaction }) {
-  const [expanded, setExpanded] = useState(false)
+function InteractionCard({ interaction, cardKey }) {
+  const [expanded, setExpanded] = useState(true)
   const color = SEVERITY_COLORS[interaction.severity] || SEVERITY_COLORS.unknown
   const bg = SEVERITY_BG[interaction.severity] || SEVERITY_BG.unknown
+
+  const hasMechanism = interaction.mechanism && interaction.mechanism.trim().length > 0
+  const hasClinical = interaction.clinical_significance && interaction.clinical_significance.trim().length > 0
+  const hasMonitoring = interaction.monitoring && interaction.monitoring.trim().length > 0
+  const hasCitations = interaction.citations && interaction.citations.length > 0
 
   return (
     <div style={{ border: "1px solid " + color + "33", borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
@@ -80,61 +85,43 @@ function InteractionCard({ interaction }) {
 
       {expanded && (
         <div style={{ padding: "16px", background: "#0a0a0f", borderTop: "1px solid " + color + "22", display: "flex", flexDirection: "column", gap: 14 }}>
-
-          {interaction.mechanism && (
+          {hasMechanism && (
             <div>
-              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>
-                MECHANISM
-              </div>
-              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>
-                {interaction.mechanism}
-              </div>
+              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>MECHANISM</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>{interaction.mechanism}</div>
             </div>
           )}
-
-          {interaction.clinical_significance && (
+          {hasClinical && (
             <div>
-              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>
-                CLINICAL SIGNIFICANCE
-              </div>
-              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>
-                {interaction.clinical_significance}
-              </div>
+              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>CLINICAL SIGNIFICANCE</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>{interaction.clinical_significance}</div>
             </div>
           )}
-
-          {interaction.monitoring && (
+          {hasMonitoring && (
             <div>
-              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>
-                MONITORING
-              </div>
-              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>
-                {interaction.monitoring}
-              </div>
+              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>MONITORING</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>{interaction.monitoring}</div>
             </div>
           )}
-
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em" }}>
-              CONFIDENCE
-            </div>
+            <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em" }}>CONFIDENCE</div>
             <div style={{
               fontSize: 10,
               fontFamily: "IBM Plex Mono, monospace",
               textTransform: "uppercase",
               color: interaction.confidence === "high" ? "#22c55e" : interaction.confidence === "medium" ? "#eab308" : "#64748b"
             }}>
-              {interaction.confidence}
+              {interaction.confidence || "low"}
             </div>
           </div>
-
-          {interaction.citations && interaction.citations.length > 0 && (
+          {hasCitations && (
             <div>
-              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 8 }}>
-                CITATIONS
-              </div>
-              {interaction.citations.map(citation => (
-                <CitationCard key={citation.pmid} citation={citation} />
+              <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 8 }}>CITATIONS</div>
+              {interaction.citations.map((citation, index) => (
+                <CitationCard
+                  key={cardKey + "-citation-" + index + "-" + citation.pmid}
+                  citation={citation}
+                />
               ))}
             </div>
           )}
@@ -144,22 +131,24 @@ function InteractionCard({ interaction }) {
   )
 }
 
-export default function SafetyReport({ report, isLoading }) {
+export default function SafetyReport({ report, isLoading, isMobile }) {
+  const containerStyle = isMobile
+    ? { width: "100%", background: "#0d1117", display: "flex", flexDirection: "column" }
+    : { width: 340, minWidth: 340, background: "#0d1117", borderLeft: "1px solid #1e293b", display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto" }
+
   if (isLoading) {
     return (
-      <div style={{ width: 340, minWidth: 340, background: "#0d1117", borderLeft: "1px solid #1e293b", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, height: "100vh" }}>
+      <div style={{ ...containerStyle, alignItems: "center", justifyContent: "center", gap: 16, minHeight: isMobile ? 200 : "100vh" }}>
         <div style={{ width: 32, height: 32, border: "2px solid #1e293b", borderTopColor: "#38bdf8", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
         <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
-        <div style={{ fontSize: 11, color: "#475569", fontFamily: "IBM Plex Mono, monospace" }}>
-          ANALYZING INTERACTIONS...
-        </div>
+        <div style={{ fontSize: 11, color: "#475569", fontFamily: "IBM Plex Mono, monospace" }}>ANALYZING INTERACTIONS...</div>
       </div>
     )
   }
 
   if (!report) {
     return (
-      <div style={{ width: 340, minWidth: 340, background: "#0d1117", borderLeft: "1px solid #1e293b", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, height: "100vh" }}>
+      <div style={{ ...containerStyle, alignItems: "center", justifyContent: "center", minHeight: isMobile ? 120 : "100vh" }}>
         <div style={{ fontSize: 12, color: "#334155", fontFamily: "IBM Plex Mono, monospace", textAlign: "center", padding: "0 24px", lineHeight: 1.8 }}>
           Safety report will appear here after analysis
         </div>
@@ -170,15 +159,12 @@ export default function SafetyReport({ report, isLoading }) {
   const hasInteractions = report.total_interactions > 0
 
   return (
-    <div style={{ width: 340, minWidth: 340, background: "#0d1117", borderLeft: "1px solid #1e293b", display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto" }}>
+    <div style={containerStyle}>
       <div style={{ padding: "24px 20px 16px", borderBottom: "1px solid #1e293b", flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: "#38bdf8", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.2em", marginBottom: 6 }}>
-          SAFETY REPORT
-        </div>
+        <div style={{ fontSize: 10, color: "#38bdf8", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.2em", marginBottom: 6 }}>SAFETY REPORT</div>
         <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 12 }}>
           {report.drugs.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")}
         </div>
-
         <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 600, color: hasInteractions ? "#f97316" : "#22c55e", fontFamily: "IBM Plex Mono, monospace" }}>
@@ -193,7 +179,6 @@ export default function SafetyReport({ report, isLoading }) {
             <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace" }}>DRUGS</div>
           </div>
         </div>
-
         {report.summary && (
           <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.7, padding: "12px", background: "#0a0a0f", borderRadius: 6, border: "1px solid #1e293b" }}>
             {report.summary}
@@ -211,9 +196,16 @@ export default function SafetyReport({ report, isLoading }) {
                 <div style={{ width: 16, height: 1.5, background: SEVERITY_COLORS[severity] }} />
                 {severity.toUpperCase()} ({interactions.length})
               </div>
-              {interactions.map((interaction, i) => (
-                <InteractionCard key={i} interaction={interaction} />
-              ))}
+              {interactions.map((interaction, i) => {
+                const cardKey = severity + "-" + interaction.drug_a + "-" + interaction.drug_b + "-" + i
+                return (
+                  <InteractionCard
+                    key={cardKey}
+                    cardKey={cardKey}
+                    interaction={interaction}
+                  />
+                )
+              })}
             </div>
           )
         })}

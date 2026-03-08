@@ -78,7 +78,7 @@ const PRESETS = [
   }
 ]
 
-export default function DrugSearch({ onAnalyze, isLoading }) {
+export default function DrugSearch({ onAnalyze, isLoading, isMobile }) {
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState([])
   const [selectedDrugs, setSelectedDrugs] = useState([])
@@ -139,16 +139,17 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
 
   return (
     <div style={{
-      width: 280,
-      minWidth: 280,
+      width: isMobile ? "100%" : 280,
+      minWidth: isMobile ? "unset" : 280,
       background: "#0d1117",
-      borderRight: "1px solid #1e293b",
+      borderRight: isMobile ? "none" : "1px solid #1e293b",
       display: "flex",
       flexDirection: "column",
       padding: 24,
       gap: 20,
-      height: "100vh",
-      overflowY: "auto"
+      height: isMobile ? "auto" : "100vh",
+      overflowY: isMobile ? "visible" : "auto",
+      boxSizing: "border-box"
     }}>
 
       {/* Header */}
@@ -162,19 +163,10 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
         }}>
           DRUG INTERACTION ANALYZER
         </div>
-        <div style={{
-          fontSize: 18,
-          fontWeight: 600,
-          color: "#f1f5f9",
-          lineHeight: 1.3
-        }}>
+        <div style={{ fontSize: 18, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.3 }}>
           Select Drugs to Analyze
         </div>
-        <div style={{
-          fontSize: 12,
-          color: "#475569",
-          marginTop: 6
-        }}>
+        <div style={{ fontSize: 12, color: "#475569", marginTop: 6 }}>
           Add 2 to 6 drugs to check for interactions
         </div>
       </div>
@@ -239,7 +231,12 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
 
       {/* Selected drug tags */}
       {selectedDrugs.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{
+          display: "flex",
+          flexDirection: isMobile ? "row" : "column",
+          flexWrap: isMobile ? "wrap" : "nowrap",
+          gap: 8
+        }}>
           {selectedDrugs.map(drug => (
             <div
               key={drug.rxcui}
@@ -250,31 +247,21 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
                 background: "#0a0a0f",
                 border: "1px solid #1e293b",
                 borderRadius: 6,
-                padding: "8px 12px"
+                padding: "8px 12px",
+                flex: isMobile ? "0 0 auto" : "unset"
               }}
             >
               <div>
                 <div style={{ fontSize: 13, color: "#e2e8f0" }}>{drug.name}</div>
-                <div style={{
-                  fontSize: 10,
-                  color: "#475569",
-                  fontFamily: "'IBM Plex Mono'",
-                  marginTop: 2
-                }}>
-                  RxCUI: {drug.rxcui}
-                </div>
+                {!isMobile && (
+                  <div style={{ fontSize: 10, color: "#475569", fontFamily: "'IBM Plex Mono'", marginTop: 2 }}>
+                    RxCUI: {drug.rxcui}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => handleRemove(drug.rxcui)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#475569",
-                  cursor: "pointer",
-                  fontSize: 16,
-                  padding: "0 4px",
-                  lineHeight: 1
-                }}
+                style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 16, padding: "0 0 0 8px", lineHeight: 1 }}
               >
                 x
               </button>
@@ -300,7 +287,12 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
           <div style={{ flex: 1, height: 1, background: "#1e293b" }} />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{
+          display: "flex",
+          flexDirection: isMobile ? "row" : "column",
+          flexWrap: isMobile ? "wrap" : "nowrap",
+          gap: 6
+        }}>
           {PRESETS.map(preset => (
             <div
               key={preset.id}
@@ -311,7 +303,9 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
                 borderRadius: 6,
                 padding: "10px 12px",
                 cursor: "pointer",
-                transition: "all 0.15s"
+                transition: "all 0.15s",
+                flex: isMobile ? "0 0 calc(50% - 3px)" : "unset",
+                boxSizing: "border-box"
               }}
               onMouseEnter={e => {
                 if (activePreset !== preset.id) {
@@ -326,15 +320,8 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
                 }
               }}
             >
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 4
-              }}>
-                <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 500 }}>
-                  {preset.label}
-                </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 500 }}>{preset.label}</div>
                 <div style={{
                   fontSize: 9,
                   color: preset.tagColor,
@@ -342,14 +329,13 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
                   letterSpacing: "0.08em",
                   background: preset.tagColor + "15",
                   padding: "2px 6px",
-                  borderRadius: 3
+                  borderRadius: 3,
+                  whiteSpace: "nowrap"
                 }}>
                   {preset.tag}
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}>
-                {preset.description}
-              </div>
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}>{preset.description}</div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {preset.drugs.map(drug => (
                   <div key={drug.rxcui} style={{
@@ -371,14 +357,9 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
       </div>
 
       {/* Analyze button */}
-      <div style={{ marginTop: "auto", paddingTop: 12 }}>
+      <div style={{ marginTop: isMobile ? 8 : "auto", paddingTop: 12 }}>
         {selectedDrugs.length < 2 && (
-          <div style={{
-            fontSize: 11,
-            color: "#475569",
-            marginBottom: 10,
-            fontFamily: "'IBM Plex Mono'"
-          }}>
+          <div style={{ fontSize: 11, color: "#475569", marginBottom: 10, fontFamily: "'IBM Plex Mono'" }}>
             Add at least 2 drugs to analyze
           </div>
         )}

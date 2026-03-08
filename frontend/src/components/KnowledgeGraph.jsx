@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react"
+import { useRef, useEffect, useCallback, useState } from "react"
 import ForceGraph2D from "react-force-graph-2d"
 
 const SEVERITY_COLORS = {
@@ -9,7 +9,7 @@ const SEVERITY_COLORS = {
   unknown: "#475569"
 }
 
-export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
+export default function KnowledgeGraph({ nodes, edges, onNodeClick, graphWidth, graphHeight }) {
   const graphRef = useRef()
 
   const graphData = {
@@ -30,16 +30,15 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
   useEffect(() => {
     if (graphRef.current && nodes.length > 0) {
       setTimeout(() => {
-        graphRef.current.zoomToFit(400, 80)
-      }, 500)
+        graphRef.current.zoomToFit(400, 40)
+      }, 600)
     }
-  }, [nodes, edges])
+  }, [nodes, edges, graphWidth, graphHeight])
 
   const nodeCanvasObject = useCallback((node, ctx, globalScale) => {
     const radius = 12
     const label = node.name.charAt(0).toUpperCase() + node.name.slice(1)
 
-    // Outer glow for boxed warning drugs
     if (node.hasBoxedWarning) {
       ctx.beginPath()
       ctx.arc(node.x, node.y, radius + 4, 0, 2 * Math.PI)
@@ -47,7 +46,6 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
       ctx.fill()
     }
 
-    // Node circle
     ctx.beginPath()
     ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI)
     ctx.fillStyle = node.hasBoxedWarning ? "#1a0a0a" : "#0d1117"
@@ -56,14 +54,12 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
     ctx.lineWidth = node.hasBoxedWarning ? 2 : 1.5
     ctx.stroke()
 
-    // Drug name label
     ctx.font = `500 ${Math.max(10 / globalScale, 4)}px IBM Plex Sans`
     ctx.fillStyle = "#e2e8f0"
     ctx.textAlign = "center"
     ctx.textBaseline = "middle"
     ctx.fillText(label, node.x, node.y)
 
-    // Boxed warning indicator dot
     if (node.hasBoxedWarning) {
       ctx.beginPath()
       ctx.arc(node.x + radius - 3, node.y - radius + 3, 4, 0, 2 * Math.PI)
@@ -90,7 +86,8 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
   if (nodes.length === 0) {
     return (
       <div style={{
-        flex: 1,
+        width: "100%",
+        height: "100%",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -99,13 +96,10 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
         background: "#0a0a0f"
       }}>
         <div style={{
-          width: 48,
-          height: 48,
+          width: 48, height: 48,
           border: "1px solid #1e293b",
           borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
+          display: "flex", alignItems: "center", justifyContent: "center"
         }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="5" cy="10" r="2.5" stroke="#334155" strokeWidth="1.5"/>
@@ -115,11 +109,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
             <line x1="7.5" y1="10" x2="12.5" y2="15" stroke="#334155" strokeWidth="1.5"/>
           </svg>
         </div>
-        <div style={{
-          fontSize: 12,
-          color: "#334155",
-          fontFamily: "IBM Plex Mono, monospace"
-        }}>
+        <div style={{ fontSize: 12, color: "#334155", fontFamily: "IBM Plex Mono, monospace" }}>
           Graph will appear here
         </div>
       </div>
@@ -127,63 +117,29 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
   }
 
   return (
-    <div style={{ flex: 1, position: "relative", background: "#0a0a0f", width: "100%", overflow: "hidden" }}>
-
-      {/* Legend */}
+    <div style={{ width: "100%", height: "100%", position: "relative", background: "#0a0a0f", overflow: "hidden" }}>
       <div style={{
-        position: "absolute",
-        top: 16,
-        left: 16,
-        zIndex: 10,
-        background: "rgba(13, 17, 23, 0.9)",
-        border: "1px solid #1e293b",
-        borderRadius: 6,
-        padding: "10px 14px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6
+        position: "absolute", top: 16, left: 16, zIndex: 10,
+        background: "rgba(13, 17, 23, 0.9)", border: "1px solid #1e293b",
+        borderRadius: 6, padding: "10px 14px",
+        display: "flex", flexDirection: "column", gap: 6
       }}>
         {Object.entries(SEVERITY_COLORS).map(([severity, color]) => (
-          <div key={severity} style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 11,
-            fontFamily: "IBM Plex Mono, monospace",
-            color: "#94a3b8"
-          }}>
-            <div style={{
-              width: 20,
-              height: 2,
-              background: color,
-              borderRadius: 1
-            }} />
+          <div key={severity} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontFamily: "IBM Plex Mono, monospace", color: "#94a3b8" }}>
+            <div style={{ width: 20, height: 2, background: color, borderRadius: 1 }} />
             {severity}
           </div>
         ))}
-        <div style={{
-          borderTop: "1px solid #1e293b",
-          marginTop: 4,
-          paddingTop: 6,
-          fontSize: 11,
-          fontFamily: "IBM Plex Mono, monospace",
-          color: "#475569",
-          display: "flex",
-          alignItems: "center",
-          gap: 8
-        }}>
-          <div style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: "#ef4444"
-          }} />
+        <div style={{ borderTop: "1px solid #1e293b", marginTop: 4, paddingTop: 6, fontSize: 11, fontFamily: "IBM Plex Mono, monospace", color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} />
           boxed warning
         </div>
       </div>
 
       <ForceGraph2D
         ref={graphRef}
+        width={graphWidth || 400}
+        height={graphHeight || 300}
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodeCanvasObjectMode={() => "replace"}
