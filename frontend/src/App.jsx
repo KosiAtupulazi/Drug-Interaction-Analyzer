@@ -4,7 +4,7 @@ import DrugSearch from "./components/DrugSearch"
 import KnowledgeGraph from "./components/KnowledgeGraph"
 import SafetyReport from "./components/SafetyReport"
 
-const API_BASE = "http://localhost:8000"
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
 export default function App() {
   const [report, setReport] = useState(null)
