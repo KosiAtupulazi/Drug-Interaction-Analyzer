@@ -23,8 +23,10 @@ export default function App() {
       const response = await axios.get(`${API_BASE}/api/graph/build`, {
         params: { drugs: drugNames }
       })
+      console.log("Report data:", response.data)
       setReport(response.data)
     } catch (err) {
+      console.log("Error:", err)
       setError(
         err.response?.data?.detail ||
         "Something went wrong. Make sure the backend is running."
@@ -69,7 +71,7 @@ export default function App() {
           <div style={{
             fontSize: 11,
             color: "#334155",
-            fontFamily: "'IBM Plex Mono'"
+            fontFamily: "IBM Plex Mono, monospace"
           }}>
             INTERACTION GRAPH
           </div>
@@ -77,7 +79,7 @@ export default function App() {
             <div style={{
               fontSize: 11,
               color: "#475569",
-              fontFamily: "'IBM Plex Mono'"
+              fontFamily: "IBM Plex Mono, monospace"
             }}>
               {report.nodes.length} nodes · {report.edges.length} edges
             </div>
@@ -97,7 +99,7 @@ export default function App() {
             padding: "10px 16px",
             fontSize: 12,
             color: "#ef4444",
-            fontFamily: "'IBM Plex Mono'",
+            fontFamily: "IBM Plex Mono, monospace",
             zIndex: 20,
             maxWidth: 400,
             textAlign: "center"
@@ -134,7 +136,7 @@ export default function App() {
                 <div style={{
                   fontSize: 10,
                   color: "#ef4444",
-                  fontFamily: "'IBM Plex Mono'",
+                  fontFamily: "IBM Plex Mono, monospace",
                   marginTop: 3
                 }}>
                   FDA BOXED WARNING
