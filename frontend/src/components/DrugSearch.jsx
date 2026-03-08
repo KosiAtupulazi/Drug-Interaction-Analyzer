@@ -3,19 +3,87 @@ import axios from "axios"
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
-const SEVERITY_COLORS = {
-  contraindicated: "#ef4444",
-  major: "#f97316",
-  moderate: "#eab308",
-  minor: "#22c55e",
-  unknown: "#64748b"
-}
+const PRESETS = [
+  {
+    id: "bleeding",
+    label: "Bleeding Risk",
+    tag: "ANTICOAGULANT",
+    tagColor: "#ef4444",
+    drugs: [
+      { name: "Warfarin", rxcui: "11289" },
+      { name: "Aspirin", rxcui: "1191" },
+      { name: "Ibuprofen", rxcui: "5640" }
+    ],
+    description: "Additive anticoagulant effects"
+  },
+  {
+    id: "serotonin",
+    label: "Serotonin Syndrome",
+    tag: "CNS",
+    tagColor: "#f97316",
+    drugs: [
+      { name: "Sertraline", rxcui: "36437" },
+      { name: "Tramadol", rxcui: "41493" },
+      { name: "Linezolid", rxcui: "190376" }
+    ],
+    description: "Dangerous serotonergic excess"
+  },
+  {
+    id: "cyp3a4",
+    label: "CYP3A4 Inhibition",
+    tag: "METABOLIC",
+    tagColor: "#eab308",
+    drugs: [
+      { name: "Atorvastatin", rxcui: "83367" },
+      { name: "Clarithromycin", rxcui: "21212" },
+      { name: "Diltiazem", rxcui: "3443" }
+    ],
+    description: "Enzyme competition, statin toxicity"
+  },
+  {
+    id: "diabetes",
+    label: "Diabetic Imaging Risk",
+    tag: "RENAL",
+    tagColor: "#22c55e",
+    drugs: [
+      { name: "Metformin", rxcui: "6809" },
+      { name: "Ibuprofen", rxcui: "5640" },
+      { name: "Lisinopril", rxcui: "29046" }
+    ],
+    description: "Lactic acidosis & renal stress"
+  },
+  {
+    id: "cardiac",
+    label: "Cardiac Risk",
+    tag: "CARDIOVASCULAR",
+    tagColor: "#38bdf8",
+    drugs: [
+      { name: "Digoxin", rxcui: "3407" },
+      { name: "Amiodarone", rxcui: "703" },
+      { name: "Metoprolol", rxcui: "41134" }
+    ],
+    description: "Bradycardia & arrhythmia risk"
+  },
+  {
+    id: "nsaid",
+    label: "NSAID Overload",
+    tag: "GI RISK",
+    tagColor: "#a855f7",
+    drugs: [
+      { name: "Aspirin", rxcui: "1191" },
+      { name: "Ibuprofen", rxcui: "5640" },
+      { name: "Naproxen", rxcui: "7258" }
+    ],
+    description: "GI bleeding & renal toxicity"
+  }
+]
 
 export default function DrugSearch({ onAnalyze, isLoading }) {
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState([])
   const [selectedDrugs, setSelectedDrugs] = useState([])
   const [showDropdown, setShowDropdown] = useState(false)
+  const [activePreset, setActivePreset] = useState(null)
   const debounceRef = useRef(null)
 
   useEffect(() => {
@@ -45,6 +113,7 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
     if (selectedDrugs.find(d => d.rxcui === drug.rxcui)) return
     if (selectedDrugs.length >= 6) return
     setSelectedDrugs(prev => [...prev, drug])
+    setActivePreset(null)
     setQuery("")
     setSuggestions([])
     setShowDropdown(false)
@@ -52,6 +121,15 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
 
   const handleRemove = (rxcui) => {
     setSelectedDrugs(prev => prev.filter(d => d.rxcui !== rxcui))
+    setActivePreset(null)
+  }
+
+  const handlePresetClick = (preset) => {
+    setSelectedDrugs(preset.drugs)
+    setActivePreset(preset.id)
+    setQuery("")
+    setSuggestions([])
+    setShowDropdown(false)
   }
 
   const handleAnalyze = () => {
@@ -72,6 +150,7 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
       height: "100vh",
       overflowY: "auto"
     }}>
+
       {/* Header */}
       <div>
         <div style={{
@@ -116,13 +195,13 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
             color: "#e2e8f0",
             fontSize: 13,
             fontFamily: "'IBM Plex Sans'",
-            outline: "none"
+            outline: "none",
+            boxSizing: "border-box"
           }}
           onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
         />
 
-        {/* Dropdown */}
         {showDropdown && suggestions.length > 0 && (
           <div style={{
             position: "absolute",
@@ -159,18 +238,9 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
       </div>
 
       {/* Selected drug tags */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {selectedDrugs.length === 0 ? (
-          <div style={{
-            fontSize: 12,
-            color: "#334155",
-            fontFamily: "'IBM Plex Mono'",
-            padding: "12px 0"
-          }}>
-            No drugs selected yet
-          </div>
-        ) : (
-          selectedDrugs.map(drug => (
+      {selectedDrugs.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {selectedDrugs.map(drug => (
             <div
               key={drug.rxcui}
               style={{
@@ -209,12 +279,99 @@ export default function DrugSearch({ onAnalyze, isLoading }) {
                 x
               </button>
             </div>
-          ))
-        )}
+          ))}
+        </div>
+      )}
+
+      {/* Quick select section */}
+      <div>
+        <div style={{
+          fontSize: 10,
+          color: "#475569",
+          fontFamily: "'IBM Plex Mono'",
+          letterSpacing: "0.15em",
+          marginBottom: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }}>
+          <div style={{ flex: 1, height: 1, background: "#1e293b" }} />
+          QUICK SELECT
+          <div style={{ flex: 1, height: 1, background: "#1e293b" }} />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {PRESETS.map(preset => (
+            <div
+              key={preset.id}
+              onClick={() => handlePresetClick(preset)}
+              style={{
+                background: activePreset === preset.id ? "#0f172a" : "#0a0a0f",
+                border: `1px solid ${activePreset === preset.id ? preset.tagColor + "55" : "#1e293b"}`,
+                borderRadius: 6,
+                padding: "10px 12px",
+                cursor: "pointer",
+                transition: "all 0.15s"
+              }}
+              onMouseEnter={e => {
+                if (activePreset !== preset.id) {
+                  e.currentTarget.style.borderColor = preset.tagColor + "33"
+                  e.currentTarget.style.background = "#0d1117"
+                }
+              }}
+              onMouseLeave={e => {
+                if (activePreset !== preset.id) {
+                  e.currentTarget.style.borderColor = "#1e293b"
+                  e.currentTarget.style.background = "#0a0a0f"
+                }
+              }}
+            >
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 4
+              }}>
+                <div style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 500 }}>
+                  {preset.label}
+                </div>
+                <div style={{
+                  fontSize: 9,
+                  color: preset.tagColor,
+                  fontFamily: "'IBM Plex Mono'",
+                  letterSpacing: "0.08em",
+                  background: preset.tagColor + "15",
+                  padding: "2px 6px",
+                  borderRadius: 3
+                }}>
+                  {preset.tag}
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 6 }}>
+                {preset.description}
+              </div>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {preset.drugs.map(drug => (
+                  <div key={drug.rxcui} style={{
+                    fontSize: 10,
+                    color: "#64748b",
+                    background: "#0f172a",
+                    border: "1px solid #1e293b",
+                    borderRadius: 3,
+                    padding: "2px 6px",
+                    fontFamily: "'IBM Plex Mono'"
+                  }}>
+                    {drug.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Analyze button */}
-      <div style={{ marginTop: "auto" }}>
+      <div style={{ marginTop: "auto", paddingTop: 12 }}>
         {selectedDrugs.length < 2 && (
           <div style={{
             fontSize: 11,
