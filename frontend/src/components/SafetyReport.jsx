@@ -41,15 +41,10 @@ function CitationCard({ citation }) {
   )
 }
 
-function InteractionCard({ interaction, cardKey }) {
+function InteractionCard({ interaction }) {
   const [expanded, setExpanded] = useState(false)
   const color = SEVERITY_COLORS[interaction.severity] || SEVERITY_COLORS.unknown
   const bg = SEVERITY_BG[interaction.severity] || SEVERITY_BG.unknown
-
-  const hasMechanism = interaction.mechanism && interaction.mechanism.trim().length > 0
-  const hasClinical = interaction.clinical_significance && interaction.clinical_significance.trim().length > 0
-  const hasMonitoring = interaction.monitoring && interaction.monitoring.trim().length > 0
-  const hasCitations = interaction.citations && interaction.citations.length > 0
 
   return (
     <div style={{ border: "1px solid " + color + "33", borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
@@ -86,7 +81,7 @@ function InteractionCard({ interaction, cardKey }) {
       {expanded && (
         <div style={{ padding: "16px", background: "#0a0a0f", borderTop: "1px solid " + color + "22", display: "flex", flexDirection: "column", gap: 14 }}>
 
-          {hasMechanism && (
+          {interaction.mechanism && (
             <div>
               <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>
                 MECHANISM
@@ -97,7 +92,7 @@ function InteractionCard({ interaction, cardKey }) {
             </div>
           )}
 
-          {hasClinical && (
+          {interaction.clinical_significance && (
             <div>
               <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>
                 CLINICAL SIGNIFICANCE
@@ -108,7 +103,7 @@ function InteractionCard({ interaction, cardKey }) {
             </div>
           )}
 
-          {hasMonitoring && (
+          {interaction.monitoring && (
             <div>
               <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 6 }}>
                 MONITORING
@@ -129,20 +124,17 @@ function InteractionCard({ interaction, cardKey }) {
               textTransform: "uppercase",
               color: interaction.confidence === "high" ? "#22c55e" : interaction.confidence === "medium" ? "#eab308" : "#64748b"
             }}>
-              {interaction.confidence || "low"}
+              {interaction.confidence}
             </div>
           </div>
 
-          {hasCitations && (
+          {interaction.citations && interaction.citations.length > 0 && (
             <div>
               <div style={{ fontSize: 10, color: "#475569", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.12em", marginBottom: 8 }}>
                 CITATIONS
               </div>
-              {interaction.citations.map((citation, index) => (
-                <CitationCard
-                  key={cardKey + "-citation-" + index + "-" + citation.pmid}
-                  citation={citation}
-                />
+              {interaction.citations.map(citation => (
+                <CitationCard key={citation.pmid} citation={citation} />
               ))}
             </div>
           )}
@@ -219,16 +211,9 @@ export default function SafetyReport({ report, isLoading }) {
                 <div style={{ width: 16, height: 1.5, background: SEVERITY_COLORS[severity] }} />
                 {severity.toUpperCase()} ({interactions.length})
               </div>
-              {interactions.map((interaction, i) => {
-                const cardKey = severity + "-" + interaction.drug_a + "-" + interaction.drug_b + "-" + i
-                return (
-                  <InteractionCard
-                    key={cardKey}
-                    cardKey={cardKey}
-                    interaction={interaction}
-                  />
-                )
-              })}
+              {interactions.map((interaction, i) => (
+                <InteractionCard key={i} interaction={interaction} />
+              ))}
             </div>
           )
         })}

@@ -1,10 +1,9 @@
-import { useState } from "react"
+import { useState, Component } from "react"
 import axios from "axios"
 import DrugSearch from "./components/DrugSearch"
 import KnowledgeGraph from "./components/KnowledgeGraph"
 import SafetyReport from "./components/SafetyReport"
 
-// v2
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
 export default function App() {
@@ -24,10 +23,8 @@ export default function App() {
       const response = await axios.get(`${API_BASE}/api/graph/build`, {
         params: { drugs: drugNames }
       })
-      console.log("Report data:", response.data)
       setReport(response.data)
     } catch (err) {
-      console.log("Error:", err)
       setError(
         err.response?.data?.detail ||
         "Something went wrong. Make sure the backend is running."
@@ -57,7 +54,8 @@ export default function App() {
       />
 
       {/* Center panel — knowledge graph */}
-      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", minWidth: 0 }}>
+
 
         {/* Top bar */}
         <div style={{
@@ -72,7 +70,7 @@ export default function App() {
           <div style={{
             fontSize: 11,
             color: "#334155",
-            fontFamily: "IBM Plex Mono, monospace"
+            fontFamily: "'IBM Plex Mono'"
           }}>
             INTERACTION GRAPH
           </div>
@@ -80,7 +78,7 @@ export default function App() {
             <div style={{
               fontSize: 11,
               color: "#475569",
-              fontFamily: "IBM Plex Mono, monospace"
+              fontFamily: "'IBM Plex Mono'"
             }}>
               {report.nodes.length} nodes · {report.edges.length} edges
             </div>
@@ -100,7 +98,7 @@ export default function App() {
             padding: "10px 16px",
             fontSize: 12,
             color: "#ef4444",
-            fontFamily: "IBM Plex Mono, monospace",
+            fontFamily: "'IBM Plex Mono'",
             zIndex: 20,
             maxWidth: 400,
             textAlign: "center"
@@ -137,7 +135,7 @@ export default function App() {
                 <div style={{
                   fontSize: 10,
                   color: "#ef4444",
-                  fontFamily: "IBM Plex Mono, monospace",
+                  fontFamily: "'IBM Plex Mono'",
                   marginTop: 3
                 }}>
                   FDA BOXED WARNING

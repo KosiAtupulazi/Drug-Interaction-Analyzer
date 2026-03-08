@@ -127,7 +127,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
   }
 
   return (
-    <div style={{ flex: 1, position: "relative", background: "#0a0a0f" }}>
+    <div style={{ flex: 1, position: "relative", background: "#0a0a0f", width: "100%", overflow: "hidden" }}>
 
       {/* Legend */}
       <div style={{

@@ -102,65 +102,60 @@ def build_drug_graph(drug_labels: dict) -> nx.Graph:
     return G
 
 async def fetch_pubmed_for_pair(drug_a: str, drug_b: str, client: httpx.AsyncClient) -> list:
-    """
-    Fetches PubMed abstracts for a drug pair using MeSH terms.
-    """
-    query = f"{drug_a} drug interactions[MeSH Terms]"
-    params = {
-        "db": "pubmed",
-        "term": query,
-        "retmax": 2,
-        "retmode": "json",
-        "sort": "relevance"
-    }
-    response = await client.get(PUBMED_SEARCH_URL, params=params, timeout=10.0)
-    if response.status_code != 200:
+    try:
+        query = f"{drug_a} drug interactions[MeSH Terms]"
+        params = {
+            "db": "pubmed",
+            "term": query,
+            "retmax": 2,
+            "retmode": "json",
+            "sort": "relevance"
+        }
+        response = await client.get(PUBMED_SEARCH_URL, params=params, timeout=10.0)
+        if response.status_code != 200:
+            return []
+
+        data = response.json()
+        pmids = data.get("esearchresult", {}).get("idlist", [])
+        if not pmids:
+            return []
+
+        fetch_params = {
+            "db": "pubmed",
+            "id": ",".join(pmids),
+            "retmode": "xml",
+            "rettype": "abstract"
+        }
+        fetch_response = await client.get(PUBMED_FETCH_URL, params=fetch_params, timeout=15.0)
+        if fetch_response.status_code != 200:
+            return []
+
+        xml = fetch_response.text
+        abstracts = []
+        articles = re.findall(r'<PubmedArticle>(.*?)</PubmedArticle>', xml, re.DOTALL)
+
+        for i, article in enumerate(articles):
+            title_match = re.search(r'<ArticleTitle>(.*?)</ArticleTitle>', article, re.DOTALL)
+            abstract_match = re.search(r'<AbstractText[^>]*>(.*?)</AbstractText>', article, re.DOTALL)
+            year_match = re.search(r'<PubDate>.*?<Year>(\d{4})</Year>', article, re.DOTALL)
+            title = clean_text(title_match.group(1)) if title_match else "No title"
+            abstract = clean_text(abstract_match.group(1)) if abstract_match else "No abstract"
+            year = year_match.group(1) if year_match else "Unknown"
+            pmid = pmids[i] if i < len(pmids) else "Unknown"
+            abstracts.append({
+                "pmid": pmid,
+                "title": title,
+                "abstract": abstract[:400],
+                "year": year,
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+            })
+
+        return abstracts
+    except Exception:
         return []
-
-    data = response.json()
-    pmids = data.get("esearchresult", {}).get("idlist", [])
-    if not pmids:
-        return []
-
-    fetch_params = {
-        "db": "pubmed",
-        "id": ",".join(pmids),
-        "retmode": "xml",
-        "rettype": "abstract"
-    }
-    fetch_response = await client.get(PUBMED_FETCH_URL, params=fetch_params, timeout=15.0)
-    if fetch_response.status_code != 200:
-        return []
-
-    xml = fetch_response.text
-    abstracts = []
-    articles = re.findall(r'<PubmedArticle>(.*?)</PubmedArticle>', xml, re.DOTALL)
-
-    for i, article in enumerate(articles):
-        title_match = re.search(r'<ArticleTitle>(.*?)</ArticleTitle>', article, re.DOTALL)
-        abstract_match = re.search(r'<AbstractText[^>]*>(.*?)</AbstractText>', article, re.DOTALL)
-        year_match = re.search(r'<PubDate>.*?<Year>(\d{4})</Year>', article, re.DOTALL)
-        title = clean_text(title_match.group(1)) if title_match else "No title"
-        abstract = clean_text(abstract_match.group(1)) if abstract_match else "No abstract"
-        year = year_match.group(1) if year_match else "Unknown"
-        pmid = pmids[i] if i < len(pmids) else "Unknown"
-        abstracts.append({
-            "pmid": pmid,
-            "title": title,
-            "abstract": abstract[:400],
-            "year": year,
-            "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
-        })
-
-    return abstracts
 
 @router.get("/build")
 async def build_graph(drugs: str):
-    """
-    Main endpoint. Fetches FDA labels, builds the knowledge graph,
-    calls NVIDIA NIM for each drug pair, fetches PubMed citations,
-    and returns the complete structured safety report.
-    """
     drug_list = [d.strip().lower() for d in drugs.split(",") if d.strip()]
 
     if len(drug_list) < 2:
@@ -172,23 +167,26 @@ async def build_graph(drugs: str):
     drug_labels = {}
     async with httpx.AsyncClient() as client:
         for drug in drug_list:
-            url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{drug}&limit=1"
-            response = await client.get(url, timeout=10.0)
-            if response.status_code == 200:
-                data = response.json()
-                results_list = data.get("results", [])
-                if results_list:
-                    label = results_list[0]
-                    raw_interactions = label.get("drug_interactions", [""])
-                    raw_boxed = label.get("boxed_warning", [])
-                    drug_labels[drug] = {
-                        "drug_interactions": clean_text(" ".join(raw_interactions)),
-                        "has_boxed_warning": len(raw_boxed) > 0
-                    }
+            try:
+                url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{drug}&limit=1"
+                response = await client.get(url, timeout=10.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    results_list = data.get("results", [])
+                    if results_list:
+                        label = results_list[0]
+                        raw_interactions = label.get("drug_interactions", [""])
+                        raw_boxed = label.get("boxed_warning", [])
+                        drug_labels[drug] = {
+                            "drug_interactions": clean_text(" ".join(raw_interactions)),
+                            "has_boxed_warning": len(raw_boxed) > 0
+                        }
+                    else:
+                        drug_labels[drug] = {"error": "Not found", "drug_interactions": "", "has_boxed_warning": False}
                 else:
-                    drug_labels[drug] = {"error": "Not found", "drug_interactions": "", "has_boxed_warning": False}
-            else:
-                drug_labels[drug] = {"error": "FDA API error", "drug_interactions": "", "has_boxed_warning": False}
+                    drug_labels[drug] = {"error": "FDA API error", "drug_interactions": "", "has_boxed_warning": False}
+            except Exception:
+                drug_labels[drug] = {"error": "Request failed", "drug_interactions": "", "has_boxed_warning": False}
 
     # Step 2 — build the knowledge graph
     G = build_drug_graph(drug_labels)
@@ -200,15 +198,23 @@ async def build_graph(drugs: str):
 
     async with httpx.AsyncClient() as client:
         for drug_a, drug_b, edge_data in G.edges(data=True):
-            # Call NIM to generate plain-language explanation
-            nim_result = explain_interaction(
-                drug_a,
-                drug_b,
-                edge_data.get("fda_text_a", ""),
-                edge_data.get("fda_text_b", "")
-            )
+            try:
+                nim_result = explain_interaction(
+                    drug_a,
+                    drug_b,
+                    edge_data.get("fda_text_a", ""),
+                    edge_data.get("fda_text_b", "")
+                )
+            except Exception:
+                nim_result = {
+                    "severity": edge_data.get("severity", "unknown"),
+                    "interaction_exists": edge_data.get("confirmed", False),
+                    "mechanism": edge_data.get("mechanism", ""),
+                    "clinical_significance": "",
+                    "monitoring": "",
+                    "confidence": "low"
+                }
 
-            # Fetch PubMed citations for this pair
             citations = await fetch_pubmed_for_pair(drug_a, drug_b, client)
 
             interaction = {
@@ -230,7 +236,10 @@ async def build_graph(drugs: str):
             interactions_by_severity[severity].append(interaction)
 
     # Step 4 — generate overall summary
-    summary = generate_summary(drug_list, enriched_interactions)
+    try:
+        summary = generate_summary(drug_list, enriched_interactions)
+    except Exception:
+        summary = "Unable to generate summary. Please review individual interactions below."
 
     # Step 5 — build node and edge lists for the graph visualization
     nodes = []
