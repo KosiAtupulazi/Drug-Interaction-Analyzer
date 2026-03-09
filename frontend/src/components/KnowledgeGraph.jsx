@@ -36,7 +36,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick, graphWidth, 
   }, [nodes, edges, graphWidth, graphHeight])
 
   const nodeCanvasObject = useCallback((node, ctx, globalScale) => {
-    const radius = 12
+    const radius = 8
     const label = node.name.charAt(0).toUpperCase() + node.name.slice(1)
 
     if (node.hasBoxedWarning) {
@@ -54,7 +54,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick, graphWidth, 
     ctx.lineWidth = node.hasBoxedWarning ? 2 : 1.5
     ctx.stroke()
 
-    ctx.font = `500 ${Math.max(10 / globalScale, 4)}px IBM Plex Sans`
+    ctx.font = `500 ${Math.max(7 / globalScale, 3)}px IBM Plex Sans`
     ctx.fillStyle = "#e2e8f0"
     ctx.textAlign = "center"
     ctx.textBaseline = "middle"
@@ -138,8 +138,8 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick, graphWidth, 
 
       <ForceGraph2D
         ref={graphRef}
-        width={graphWidth || 400}
-        height={graphHeight || 300}
+        {...(graphWidth ? { width: graphWidth } : {})}
+        {...(graphHeight ? { height: graphHeight } : {})}
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodeCanvasObjectMode={() => "replace"}
@@ -165,7 +165,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick, graphWidth, 
         }
         linkDirectionalParticleColor={linkColor}
         cooldownTicks={100}
-        nodeRelSize={6}
+        nodeRelSize={3}
       />
     </div>
   )
